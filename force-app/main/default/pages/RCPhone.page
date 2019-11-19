@@ -1,0 +1,156 @@
+<apex:page controller="NewCaseListController">
+	<script src="/support/api/40.0/lightning/opencti_min.js"></script>
+	<script src="https://services.invoxcontact.com/listener/js/connect.js?unpacket=1"></script>
+    <script>
+    	connectToListener('52998605aabbe81c4e77');
+    	function connectToListener(token) {
+        console.log('Listener: ', token);
+
+        window.didConnect = () => {
+            console.log('Connected');
+        }
+        window.connectionError = () => {
+            console.log('disconnected');
+        }
+        window.incomingEarly = (data) => {
+            console.log(data);
+            receiveMessage(data);
+			newCasepopUp(data);
+        }
+        window.incomingAnswered = (data) => {
+          console.log(data);
+        }
+        window.incomingTerminated = (data) => {
+           console.log(data);
+        }
+        window.incomingMissed = (data) => {
+            console.log(data);
+        }
+        window.outgoingEarly = (data) => {
+           console.log(data);
+		   receiveMessage(data);
+        }
+        window.outgoingAnswered = (data) => {
+           console.log(data);
+        }
+        window.outgoingTerminated = (data) => {
+           console.log(data);
+        }
+        window.agnetStatusChanged = (data) => {
+            console.log(data);
+        }
+        window.QueueCallerJoinEvent = (data) => {
+           console.log(data);
+        }
+        window.QueueCallerLeaveEvent = (data) => {
+            console.log(data);
+        }
+        window.QueueCallNoAnswer = (data) => {
+           console.log(data);
+        }
+        window.chatEnded = (data) => {
+           console.log(data);
+        }
+        window.chatBegin = (data) => {
+            console.log(data);
+        }
+        try {
+            const listener = new window.Listener({
+                "token": token,
+                "listen": ["call.*", "status", "queue"],
+                "actions": {
+                    "system": {
+                        "on_connect": "didConnect",
+                        //"on_disconnect": "connectionError"
+                    },
+                    "calls": {
+                        "on_incoming_call_early": "incomingEarly",
+                        "on_incoming_call_answered": "incomingAnswered",
+                        "on_incoming_call_terminated": "incomingTerminated",
+                        "on_incoming_call_missed": "incomingMissed",
+                        "on_outgoing_call_early": "outgoingEarly",
+                        "on_outgoing_call_answered": "outgoingAnswered",
+                        "on_outgoing_call_terminated": "outgoingTerminated",
+                        "availability_info_detail": "agnetStatusChanged",
+                        "chat_availability_info_detail": "agnetChatStatusChanged",
+                        "queuecallerjoin": "QueueCallerJoinEvent",
+                        "queuecallerabandon": "QueueCallerLeaveEvent",
+                        "queuecallerleave": "QueueCallerLeaveEvent",
+                        "agentconnect": "QueueCallerLeaveEvent",
+                        "agentringnoanswer": "QueueCallNoAnswer",
+                        "chat_ended": "chatEnded",
+                        "chat_begin": "chatBegin"
+                    }
+                }
+            });
+            listener.connect();
+        }
+        catch (err) {
+            console.log("An error has ocurred");
+            console.log(err);
+        }
+    }
+		function receiveMessage(event) {
+        if(event.tag === 'on_incoming_call_early' || event.tag === '"on_outgoing_call_early"') {
+            sforce.opencti.setSoftphonePanelVisibility({ visible: true });
+			if(event.tag === 'on_incoming_call_early')
+			{
+            	var fromNumber = event.data.from;
+            }
+            else if(event.tag === 'on_outgoing_call_early')
+            {
+                var fromNumber = event.data.to;
+            }
+            // if(fromNumber[0] === '+') {
+            //    fromNumber = fromNumber.substring(1);
+            // }
+            
+            sforce.opencti.runApex({ apexClass: 'RCPhoneHelper', methodName: 'searchContact', methodParams: 'phone=' +fromNumber,
+                                    callback: function(response) {
+                                        if(response.success == true) {
+                                            var contact = response.returnValue.runApex;
+                                            if((contact !== null) && (contact !== undefined)) {
+                                               sforce.opencti.screenPop({
+                                                 type: sforce.opencti.SCREENPOP_TYPE.SOBJECT,
+                                                	params: { recordId: contact.Id}
+                                             });
+                                          }
+                                       }
+                                     } 
+                                   });
+            } 
+        }
+		function newCasepopUp(event) {
+        if(event.tag === 'on_incoming_call_early' || event.tag === '"on_outgoing_call_early"') {
+            sforce.opencti.setSoftphonePanelVisibility({ visible: true });
+			if(event.tag === 'on_incoming_call_early')
+			{
+            	var fromNumber = event.data.from;
+            }
+            else if(event.tag === 'on_outgoing_call_early')
+            {
+                var fromNumber = event.data.to;
+            }
+            // if(fromNumber[0] === '+') {
+            //    fromNumber = fromNumber.substring(1);
+            // }
+            
+            sforce.opencti.runApex({ apexClass: 'RCPhoneHelper', methodName: 'searchContact', methodParams: 'phone=' +fromNumber,
+                                    callback: function(response) {
+                                        if(response.success == true) {
+                                            var contact = response.returnValue.runApex;
+                                            if((contact !== null) && (contact !== undefined)) {
+                                               sforce.opencti.screenPop({
+                                                 type: sforce.opencti.SCREENPOP_TYPE.LIST,
+                                                	{ listViewId: contact.Id, scope: "New Case" }
+                                             });
+                                          }
+                                       }
+                                     } 
+                                   });
+            } 
+        }
+        window.addEventListener("message", receiveMessage, false);
+    </script>
+	
+</apex:page>
